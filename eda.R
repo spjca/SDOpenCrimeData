@@ -336,11 +336,23 @@ crime_beat_priorty <- pd_cleaned %>%
 # working with the geojson beats data, let's aggregate crimes in each beat
 # for the map display
 
-crime_beat_sums <- pd_2020 %>% 
+crime_beat_sums_2020 <- pd_2020 %>% 
   group_by(beat) %>% 
-  count(name = 'ct') %>%
+  count(name = 'ct_2020') %>%
   ungroup(beat) %>%
-  arrange(beat, desc(ct), by_group = TRUE)
+  arrange(beat, desc(ct_2020), by_group = TRUE)
+
+crime_beat_sums_2019 <- pd_2019 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2019') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2019), by_group = TRUE)
+
+crime_beat_sums_2018 <- pd_2018 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2018') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2018), by_group = TRUE)
 
 
 ### crime beat ts
@@ -463,3 +475,34 @@ calls_hourly_ts %>%
   plot_seasonal_diagnostics(date, value, interactive = FALSE)
 
 
+######################################
+# https://wetlands.io/maps/Crime-Analysis-Using-R.html
+#looking to emulate the time crime heatmap
+
+# create field with hour of crime
+pd_2020$hour <- hour(pd_2020$date_time)
+
+
+call_dow_hour <- pd_2020 %>% 
+                  group_by(day_of_week, hour) %>%
+                  summarize(count = n())
+
+call_dow_hour$day_of_week <- as.factor(call_dow_hour$day_of_week)
+call_dow_hour$hour <- as.factor(call_dow_hour$hour)
+
+
+plot <- ggplot(call_dow_hour, aes(x = hour, y = day_of_week, fill = count)) +
+  geom_tile() +
+  # fte_theme() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.6),
+        legend.title = element_blank(),
+        legend.position="top",
+        legend.direction="horizontal",
+        legend.key.width=unit(2, "cm"),
+        legend.key.height=unit(0.25, "cm")#,
+        #legend.margin=unit(-0.5,"cm"),
+        #panel.margin=element_blank()
+        ) +
+  labs(x = "Hour of Service Call (Local Time)", y = "Day of Week of Service Call", title = "Number of Calls for Service in San Diego 2020 by Time of Day") +
+  scale_fill_gradient(low = "white", high = "#27AE60")#, labels = comma)
+plot

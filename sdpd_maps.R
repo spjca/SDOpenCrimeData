@@ -39,12 +39,21 @@ leaflet(geojson) %>%
 # using the eda.R script, create the crime_beat_sums dataframe to join
 # with the geojson object
 
-m <- sp::merge(geojson,crime_beat_sums, by = 'beat')
+m <- sp::merge(geojson,crime_beat_sums_2020, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2019, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2018, by = 'beat')
+
+
+
+m <- m[(m$ct>1),]
 
 # create variable with lable information pulled from geojson data
 mytext <- paste(
-            "Beat: ", m@data$name, "<br/>",
-            "Total Calls 2020: ", m@data$ct, "<br/>", sep = " "
+            "Beat: ", m$name, "<br/>",
+            "Total Calls 2020: ", m$ct_2020, 
+            "<br/> Total Calls 2019: ", m$ct_2019, 
+            "<br/> Total Calls 2018: ", m$ct_2018 , 
+            sep = " "
         ) %>%
         lapply(htmltools::HTML)
 
@@ -77,10 +86,15 @@ geojson <- geojson_sf("pd_beats_datasd.geojson")
 #n <- sp::merge(geojson,crime_beat_daily_ts, by = 'beat')
 n <- sp::merge(geojson,crime_beat_sums, by = 'beat')
 
-ggplot(data = n) +
+ggplot(data = m) +
   geom_sf(aes(fill=ct)) +
-  scale_fill_gradient(name = 'Total', trans = 'log', breaks = c(1,max(p$value))) +
-  theme_bw() + theme(legend.position="bottom", panel.border = element_blank())
+  scale_fill_gradient(name = 'Total', 
+                      #trans = 'log', 
+                      breaks = c(0,max(m$value))) +
+  theme_bw() +
+  theme(legend.position="right", 
+        panel.border = element_blank()) +
+  coord_map()
 
 
 # this is more or less working for a single map, let's try an animation
