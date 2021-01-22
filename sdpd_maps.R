@@ -7,6 +7,7 @@ library(raster)
 
 
 geojson <- geojsonio::geojson_read("pd_beats_datasd.geojson", what = "sp")
+#geojson <- geojsonio::geojson_read("pd_beats_datasd.geojson", what = "sp")
 
 geojson$style = list(
   weight = 1,
@@ -81,7 +82,9 @@ library(geojsonsf)
 library(rnaturalearth)
 library(rnaturalearthdata)
 
-geojson <- geojson_sf("pd_beats_datasd.geojson")
+#geojson <- geojson_sf("pd_beats_datasd.geojson")
+geojson <- geojson_sf("https://seshat.datasd.org/sde/pd/pd_beats_datasd.geojson")
+
 
 #n <- sp::merge(geojson,crime_beat_daily_ts, by = 'beat')
 n <- sp::merge(geojson,crime_beat_sums, by = 'beat')

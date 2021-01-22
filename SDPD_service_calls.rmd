@@ -1,0 +1,163 @@
+---
+title: "SDPD Beat Counts"
+author: "Sean Jackson"
+date: "1/19/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+## initial settings
+knitr::opts_chunk$set(
+  comment = NA,
+  echo = TRUE,
+  error = TRUE,
+  cache = FALSE,
+  message = FALSE,
+  dpi = 96,
+  warning = FALSE
+)
+
+## width to use when printing tables etc.
+options(
+  width = 250,
+  scipen = 100,
+  max.print = 5000,
+  stringsAsFactors = FALSE
+)
+```
+
+<style>
+.table {
+  width: auto;
+}
+ul, ol {
+  padding-left: 18px;
+}
+pre, code, pre code {
+  overflow: auto;
+  white-space: pre;
+  word-wrap: normal;
+  background-color: #ffffff;
+}
+</style>
+
+```{r libraries}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(data.table)
+library(dplyr)
+library(leaflet)
+library(geojsonio)
+library(jsonlite)
+library(raster)
+library(sf)
+library(geojsonsf)
+library(ggplot2)
+```
+
+## San Diego Police Department Total Calls for Service by Beat
+
+Leaflet map displays each SDPD beat and the total number of calls for service from the public for each year of 2018, 2019, and 2020. With more time, I would like to obtain the lat/lon positions of each call for service to give a more detailed map in the future. Data is directly loaded from the San Diego Open Data portal into the RMD doc where it is cleaned and the map generated.
+
+## R Code
+
+```{r data loading}
+# import multple datasets and join together before eda
+pd_2020 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2020_datasd.csv",
+#pd_2020 <- read_csv("pd_calls_for_service_2020_datasd.csv", 
+            #col_types = cols(date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
+              col_types = cols(incident_num = col_character(), 
+                 date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                 day_of_week = col_integer(), address_number_primary = col_integer(), 
+                 address_dir_primary = col_character(), 
+                 address_road_primary = col_character(), 
+                 address_sfx_primary = col_character(), 
+                 address_dir_intersecting = col_character(), 
+                 address_road_intersecting = col_character(), 
+                 address_sfx_intersecting = col_character(), 
+                 call_type = col_character(), disposition = col_character(), 
+                 beat = col_integer(), priority = col_integer()))
+
+pd_2019 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2019_datasd.csv", 
+              col_types = cols(incident_num = col_character(), 
+                 date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                 day_of_week = col_integer(), address_number_primary = col_integer(), 
+                 address_dir_primary = col_character(), 
+                 address_road_primary = col_character(), 
+                 address_sfx_primary = col_character(), 
+                 address_dir_intersecting = col_character(), 
+                 address_road_intersecting = col_character(), 
+                 address_sfx_intersecting = col_character(), 
+                 call_type = col_character(), disposition = col_character(), 
+                 beat = col_integer(), priority = col_integer()))
+
+pd_2018 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2018_datasd.csv", 
+              col_types = cols(incident_num = col_character(), 
+                 date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                 day_of_week = col_integer(), address_number_primary = col_integer(), 
+                 address_dir_primary = col_character(), 
+                 address_road_primary = col_character(), 
+                 address_sfx_primary = col_character(), 
+                 address_dir_intersecting = col_character(), 
+                 address_road_intersecting = col_character(), 
+                 address_sfx_intersecting = col_character(), 
+                 call_type = col_character(), disposition = col_character(), 
+                 beat = col_integer(), priority = col_integer()))
+
+# load in geojson data as spacial data frame
+geojson <- geojson_sf("https://seshat.datasd.org/sde/pd/pd_beats_datasd.geojson")
+```
+
+```{r cleaning}
+# working with the geojson beats data, let's aggregate crimes in each beat
+# for the map display
+
+crime_beat_sums_2020 <- pd_2020 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2020') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2020), by_group = TRUE)
+
+crime_beat_sums_2019 <- pd_2019 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2019') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2019), by_group = TRUE)
+
+crime_beat_sums_2018 <- pd_2018 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2018') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2018), by_group = TRUE)
+
+# now merge the aggregated call data with the spacial data frame
+m <- sp::merge(geojson,crime_beat_sums_2020, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2019, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2018, by = 'beat')
+               
+# create variable with lable information pulled from geojson data
+mytext <- paste(
+            "Beat: ", m$name, "<br/>",
+            "Total Calls 2020: ", m$ct_2020, 
+            "<br/> Total Calls 2019: ", m$ct_2019, 
+            "<br/> Total Calls 2018: ", m$ct_2018 , 
+            sep = " "
+        ) %>%
+        lapply(htmltools::HTML)
+
+# finally we create the map using leaflet
+sd_crime_map <- leaflet(m) %>%
+  addTiles() %>%
+  addPolygons(stroke = TRUE, 
+              smoothFactor = 0.3, 
+              label = mytext,
+              highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                  bringToFront = TRUE))
+```
+
+```{r call map}
+sd_crime_map
+```

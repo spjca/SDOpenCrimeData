@@ -506,3 +506,65 @@ plot <- ggplot(call_dow_hour, aes(x = hour, y = day_of_week, fill = count)) +
   labs(x = "Hour of Service Call (Local Time)", y = "Day of Week of Service Call", title = "Number of Calls for Service in San Diego 2020 by Time of Day") +
   scale_fill_gradient(low = "white", high = "#27AE60")#, labels = comma)
 plot
+
+
+#sunset cliffs
+
+sc <- pd[pd$neighborhood == 'Sunset Cliffs',]
+sc$year <- year(sc$date_time)
+
+sc_ts <- sc %>%
+  group_by(year, description.x) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = year, 
+              values_from = count)
+
+write.table(sc_ts, "sunset_Cliffs.csv")
+
+
+
+pb <- pd[pd$neighborhood == 'Pacific Beach',]
+pb$year <- year(pb$date_time)
+
+pb_ts <- pb %>%
+  group_by(year, description.x) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = year, 
+              values_from = count)
+
+
+pd_2020 <- merge(pd_2020, call_type[,1:2], by = "call_type")
+pd_2020 <- merge(pd_2020, beat, by = "beat")
+
+
+x <- pd_2020 %>% 
+  group_by(description, neighborhood) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = neighborhood,
+              values_from = count,
+              values_fill = 0)
+
+
+x <- x[!x$description=="Airplane Crash",]
+
+### 2019
+
+pd_2019 <- merge(pd_2019, call_type[,1:2], by = "call_type")
+pd_2019 <- merge(pd_2019, beat, by = "beat")
+
+
+y <- pd_2019 %>% 
+  group_by(description, neighborhood) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = neighborhood,
+              values_from = count,
+              values_fill = 0)
+
+
+pd_diff <- pd_2020 - pd_2019
+
+
+library(compare)
+
+compare(x,y)
+
