@@ -11,6 +11,23 @@ library(tibbletime)
 library(timetk)
 
 # import multple datasets and join together before eda
+
+pd_2021 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2021_datasd.csv",
+                    #pd_2020 <- read_csv("pd_calls_for_service_2020_datasd.csv", 
+                    #col_types = cols(date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
+                    col_types = cols(incident_num = col_character(), 
+                                     date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                                     day_of_week = col_integer(), address_number_primary = col_integer(), 
+                                     address_dir_primary = col_character(), 
+                                     address_road_primary = col_character(), 
+                                     address_sfx_primary = col_character(), 
+                                     address_dir_intersecting = col_character(), 
+                                     address_road_intersecting = col_character(), 
+                                     address_sfx_intersecting = col_character(), 
+                                     call_type = col_character(), disposition = col_character(), 
+                                     beat = col_integer(), priority = col_integer()))
+
+
 pd_2020 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2020_datasd.csv",
 #pd_2020 <- read_csv("pd_calls_for_service_2020_datasd.csv", 
             #col_types = cols(date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
@@ -92,7 +109,7 @@ pd_2015 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2015_data
                  beat = col_integer(), priority = col_integer()))
 
 #pd <- bind_rows(pd_2015, pd_2016, pd_2017, pd_2018,pd_2019,pd_2020)
-pd <- bind_rows(pd_2018,pd_2019,pd_2020)
+pd <- bind_rows(pd_2018,pd_2019,pd_2020, pd_2021)
 
 
 # in order to make things more legible, lets pull down and join the call_type definitions

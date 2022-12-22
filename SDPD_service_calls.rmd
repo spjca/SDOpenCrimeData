@@ -66,9 +66,21 @@ Leaflet map displays each SDPD beat and the total number of calls for service fr
 
 ```{r data loading}
 # import multple datasets and join together before eda
+pd_2021 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2021_datasd.csv",
+                    col_types = cols(incident_num = col_character(), 
+                                     date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                                     day_of_week = col_integer(), address_number_primary = col_integer(), 
+                                     address_dir_primary = col_character(), 
+                                     address_road_primary = col_character(), 
+                                     address_sfx_primary = col_character(), 
+                                     address_dir_intersecting = col_character(), 
+                                     address_road_intersecting = col_character(), 
+                                     address_sfx_intersecting = col_character(), 
+                                     call_type = col_character(), disposition = col_character(), 
+                                     beat = col_integer(), priority = col_integer()))
+
+
 pd_2020 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2020_datasd.csv",
-#pd_2020 <- read_csv("pd_calls_for_service_2020_datasd.csv", 
-            #col_types = cols(date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
               col_types = cols(incident_num = col_character(), 
                  date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
                  day_of_week = col_integer(), address_number_primary = col_integer(), 
@@ -115,6 +127,12 @@ geojson <- geojson_sf("https://seshat.datasd.org/sde/pd/pd_beats_datasd.geojson"
 # working with the geojson beats data, let's aggregate crimes in each beat
 # for the map display
 
+crime_beat_sums_2021 <- pd_2021 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2021') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2021), by_group = TRUE)
+
 crime_beat_sums_2020 <- pd_2020 %>% 
   group_by(beat) %>% 
   count(name = 'ct_2020') %>%
@@ -134,14 +152,16 @@ crime_beat_sums_2018 <- pd_2018 %>%
   arrange(beat, desc(ct_2018), by_group = TRUE)
 
 # now merge the aggregated call data with the spacial data frame
-m <- sp::merge(geojson,crime_beat_sums_2020, by = 'beat')
+m <- sp::merge(geojson,crime_beat_sums_2021, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2020, by = 'beat')
 m <- sp::merge(m,crime_beat_sums_2019, by = 'beat')
 m <- sp::merge(m,crime_beat_sums_2018, by = 'beat')
                
 # create variable with lable information pulled from geojson data
 mytext <- paste(
             "Beat: ", m$name, "<br/>",
-            "Total Calls 2020: ", m$ct_2020, 
+            "Total Calls 2021: ", m$ct_2021, 
+            "<br/> Total Calls 2020: ", m$ct_2020, 
             "<br/> Total Calls 2019: ", m$ct_2019, 
             "<br/> Total Calls 2018: ", m$ct_2018 , 
             sep = " "
