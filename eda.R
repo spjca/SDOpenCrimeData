@@ -108,8 +108,8 @@ pd_2015 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2015_data
                  call_type = col_character(), disposition = col_character(), 
                  beat = col_integer(), priority = col_integer()))
 
-#pd <- bind_rows(pd_2015, pd_2016, pd_2017, pd_2018,pd_2019,pd_2020)
-pd <- bind_rows(pd_2018,pd_2019,pd_2020, pd_2021)
+pd <- bind_rows(pd_2015, pd_2016, pd_2017, pd_2018,pd_2019,pd_2020,pd_2021)
+#pd <- bind_rows(pd_2018,pd_2019,pd_2020, pd_2021)
 
 
 # in order to make things more legible, lets pull down and join the call_type definitions
@@ -126,6 +126,16 @@ pd <- merge(pd, disposition, by = "disposition")
 beat <- read_csv("https://seshat.datasd.org/pd/pd_beat_codes_list_datasd.csv")
 
 pd <- merge(pd, beat, by = "beat")
+
+
+CallTypeTable <- data.table(table(pd$description.x,year(pd$date_time))) %>% 
+  pivot_wider(., names_from = V2, values_from = N)
+
+OutcomeTable <- data.table(table(pd$description.y,year(pd$date_time))) %>% 
+  pivot_wider(., names_from = V2, values_from = N)
+
+NeighborhoodTable <- data.table(table(pd$neighborhood,year(pd$date_time))) %>% 
+  pivot_wider(., names_from = V2, values_from = N)
 
 # create column for hour
 pd_2020$hour <- as.POSIXlt(pd_2020$date_time)$hour
