@@ -1,7 +1,7 @@
 ---
-title: "SDPD Beat Counts"
+title: "SDPD Annual Service Call Count by Beat"
 author: "Sean Jackson"
-date: "1/19/2021"
+date: "1/14/2022"
 output: 
   html_document:
     code_folding: hide
@@ -56,11 +56,14 @@ library(raster)
 library(sf)
 library(geojsonsf)
 library(ggplot2)
+library(viridis) # colour blind friendly palette, works in B&W also
+library(ggExtra) # because remembering ggplot theme options is beyond me
+library(tidyr)
 ```
 
 ## San Diego Police Department Total Calls for Service by Beat
 
-Leaflet map displays each SDPD beat and the total number of calls for service from the public for each year of 2018, 2019, and 2020. With more time, I would like to obtain the lat/lon positions of each call for service to give a more detailed map in the future. Data is directly loaded from the San Diego Open Data portal into the RMD doc where it is cleaned and the map generated.
+Leaflet map displays each SDPD beat and the total number of calls for service from the public for each year from 2016 to 2022. Data are directly loaded from the San Diego Open Data portal into the RMD doc where it is cleaned and the map generated. 
 
 ## R Code
 
@@ -261,3 +264,4 @@ sd_crime_map <- leaflet(m) %>%
 ```{r call map}
 sd_crime_map
 ```
+
