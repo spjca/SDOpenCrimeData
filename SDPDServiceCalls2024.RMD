@@ -1,0 +1,134 @@
+---
+title: "SDPD Annual Service Call Count by Beat"
+author: "Sean Jackson"
+date: "8/10/2022"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+## initial settings
+knitr::opts_chunk$set(
+  comment = NA,
+  echo = TRUE,
+  error = TRUE,
+  cache = FALSE,
+  message = FALSE,
+  dpi = 96,
+  warning = FALSE
+)
+
+## width to use when printing tables etc.
+options(
+  width = 250,
+  scipen = 100,
+  max.print = 5000,
+  stringsAsFactors = FALSE
+)
+```
+
+<style>
+.table {
+  width: auto;
+}
+ul, ol {
+  padding-left: 18px;
+}
+pre, code, pre code {
+  overflow: auto;
+  white-space: pre;
+  word-wrap: normal;
+  background-color: #ffffff;
+}
+</style>
+
+```{r libraries}
+library(tidyverse)
+library(lubridate)
+library(leaflet)
+library(geojsonio)
+library(sf)
+library(viridis)
+library(ggExtra)
+```
+
+## San Diego Police Department Total Calls for Service by Beat
+
+Leaflet map displays each SDPD beat and the total number of calls for service from the public for each year from 2016 to 2024. Data are directly loaded from the San Diego Open Data portal into the RMD doc where it is cleaned and the map generated. 
+
+## R Code
+
+```{r data loading}
+# Load datasets dynamically and combine
+years <- 2016:2024
+pd_data_list <- lapply(years, function(year) {
+  url <- paste0("https://seshat.datasd.org/police_calls_for_service/pd_calls_for_service_", year, "_datasd.csv")
+  read_csv(url, col_types = cols(
+    incident_num = col_character(), 
+    date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+    day_of_week = col_integer(), 
+    address_number_primary = col_integer(), 
+    address_dir_primary = col_character(), 
+    address_road_primary = col_character(), 
+    address_sfx_primary = col_character(), 
+    address_dir_intersecting = col_character(), 
+    address_road_intersecting = col_character(), 
+    address_sfx_intersecting = col_character(), 
+    call_type = col_character(), 
+    disposition = col_character(), 
+    beat = col_integer(), 
+    priority = col_integer()
+  )) %>%
+  mutate(year = year)
+})
+
+# Combine all years into a single dataframe
+pd_combined <- bind_rows(pd_data_list)
+```  
+
+```{r data cleaning}
+# Aggregate call counts by beat and year
+crime_beat_sums <- pd_combined %>% 
+  group_by(beat, year) %>% 
+  summarize(call_count = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = year, values_from = call_count, names_prefix = "ct_")
+
+# Load geojson data
+geojson <- geojson_sf("https://seshat.datasd.org/gis_police_beats/pd_beats_datasd.geojson")
+
+# Merge with spatial data
+m <- geojson %>%
+  left_join(crime_beat_sums, by = 'beat')
+
+# Create labels
+mytext <- apply(m, 1, function(row) {
+  paste(
+    "Beat: ", row["name"], "<br/>",
+    paste0("Total Calls ", years, ": ", row[paste0("ct_", years)], collapse = "<br/>")
+  )
+}) %>%
+  lapply(htmltools::HTML)
+
+```
+
+```{r generate map}
+# Create a color palette based on the 2024 call count data
+pal <- colorNumeric(palette = viridis_pal()(100), domain = m$ct_2024)
+
+sd_crime_map <- leaflet(m) %>%
+  addTiles() %>%
+  addPolygons(stroke = TRUE, 
+              color = "black", 
+              weight = 1, 
+              fillOpacity = 0.5, 
+              smoothFactor = 0.3, 
+              label = mytext,
+              popup = mytext, # Adding popup
+              highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = TRUE),
+              fillColor = ~pal(ct_2024))
+
+sd_crime_map
+
+```
+

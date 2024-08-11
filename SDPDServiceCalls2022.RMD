@@ -69,6 +69,32 @@ Leaflet map displays each SDPD beat and the total number of calls for service fr
 
 ```{r data loading}
 # import multple datasets and join together before eda
+pd_2024 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2024_datasd.csv",
+                    col_types = cols(incident_num = col_character(), 
+                                     date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                                     day_of_week = col_integer(), address_number_primary = col_integer(), 
+                                     address_dir_primary = col_character(), 
+                                     address_road_primary = col_character(), 
+                                     address_sfx_primary = col_character(), 
+                                     address_dir_intersecting = col_character(), 
+                                     address_road_intersecting = col_character(), 
+                                     address_sfx_intersecting = col_character(), 
+                                     call_type = col_character(), disposition = col_character(), 
+                                     beat = col_integer(), priority = col_integer()))
+
+pd_2023 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2023_datasd.csv",
+                    col_types = cols(incident_num = col_character(), 
+                                     date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+                                     day_of_week = col_integer(), address_number_primary = col_integer(), 
+                                     address_dir_primary = col_character(), 
+                                     address_road_primary = col_character(), 
+                                     address_sfx_primary = col_character(), 
+                                     address_dir_intersecting = col_character(), 
+                                     address_road_intersecting = col_character(), 
+                                     address_sfx_intersecting = col_character(), 
+                                     call_type = col_character(), disposition = col_character(), 
+                                     beat = col_integer(), priority = col_integer()))
+
 pd_2022 <- read_csv("https://seshat.datasd.org/pd/pd_calls_for_service_2022_datasd.csv",
                     col_types = cols(incident_num = col_character(), 
                                      date_time = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
@@ -180,6 +206,14 @@ geojson <- geojson_sf("https://seshat.datasd.org/sde/pd/pd_beats_datasd.geojson"
 ```{r cleaning}
 # working with the geojson beats data, let's aggregate crimes in each beat
 # for the map display
+
+crime_beat_sums_2023 <- pd_2023 %>% 
+  group_by(beat) %>% 
+  count(name = 'ct_2023') %>%
+  ungroup(beat) %>%
+  arrange(beat, desc(ct_2023), by_group = TRUE)
+
+
 crime_beat_sums_2022 <- pd_2022 %>% 
   group_by(beat) %>% 
   count(name = 'ct_2022') %>%
@@ -228,7 +262,8 @@ crime_beat_sums_2015 <- pd_2015 %>%
   ungroup(beat) %>%
   arrange(beat, desc(ct_2015), by_group = TRUE)
 # now merge the aggregated call data with the spacial data frame
-m <- sp::merge(geojson,crime_beat_sums_2022, by = 'beat')
+m <- sp::merge(geojson,crime_beat_sums_2023, by = 'beat')
+m <- sp::merge(m,crime_beat_sums_2022, by = 'beat')
 m <- sp::merge(m,crime_beat_sums_2021, by = 'beat')
 m <- sp::merge(m,crime_beat_sums_2020, by = 'beat')
 m <- sp::merge(m,crime_beat_sums_2019, by = 'beat')
@@ -240,7 +275,8 @@ m <- sp::merge(m,crime_beat_sums_2016, by = 'beat')
 # create variable with lable information pulled from geojson data
 mytext <- paste(
             "Beat: ", m$name, "<br/>",
-            "Total Calls 2022: ", m$ct_2022,
+            "Total Calls 2023: ", m$ct_2023,
+            "<br/> Total Calls 2022: ", m$ct_2022,
             "<br/> Total Calls 2021: ", m$ct_2021, 
             "<br/> Total Calls 2020: ", m$ct_2020, 
             "<br/> Total Calls 2019: ", m$ct_2019, 
