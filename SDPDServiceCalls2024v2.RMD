@@ -65,7 +65,7 @@ Leaflet map displays each SDPD beat and the total number of calls for service fr
 
 ```{r data loading}
 # Load datasets dynamically and combine
-years <- 2016:2024
+years <- 2022:2024
 pd_data_list <- lapply(years, function(year) {
   url <- paste0("https://seshat.datasd.org/police_calls_for_service/pd_calls_for_service_", year, "_datasd.csv")
   read_csv(url, col_types = cols(
