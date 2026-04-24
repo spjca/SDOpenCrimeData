@@ -1,0 +1,9 @@
+pandas
+geopandas
+shapely
+plotly
+requests
+pyarrow
+pytest
+kaleido
+Pillow
